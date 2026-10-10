@@ -1,0 +1,657 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>吃飽沒上線｜教學部團購站</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root{
+  --yellow:#FFE600; --mustard:#F3C94B; --cyan:#1ED6DD; --teal:#0E4A52;
+  --ink:#24292B; --paper:#EDEDEA; --white:#fff; --red:#E8513B; --muted:#5E6E70;
+  --r:14px; --sh:5px 5px 0 var(--teal);
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{font-family:"Noto Sans TC",system-ui,sans-serif;background:var(--paper);color:var(--ink);line-height:1.6;font-size:16px}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--cyan);outline-offset:2px}
+.hidden{display:none!important}
+
+/* ---------- Hero ---------- */
+.hero{position:relative;overflow:hidden;min-height:300px;display:grid;place-items:center;
+  background:radial-gradient(ellipse at 55% 40%,#fff 0%,#e4e4e1 60%,#d8d8d4 100%);border-bottom:4px solid var(--teal)}
+.hero .s{position:absolute;inset:0}
+.s1{background:var(--cyan);clip-path:polygon(0 8%,14% 0,24% 0,0 52%)}
+.s2{background:var(--mustard);clip-path:polygon(0 52%,24% 0,33% 0,0 74%)}
+.s3{background:var(--cyan);clip-path:polygon(100% 0,100% 56%,84% 0)}
+.s4{background:var(--mustard);clip-path:polygon(100% 56%,100% 82%,74% 0,84% 0)}
+.s5,.s6{background-color:#2B2F31;background-image:linear-gradient(#ffffff1c 1px,transparent 1px),linear-gradient(90deg,#ffffff1c 1px,transparent 1px);background-size:34px 34px}
+.s5{clip-path:polygon(0 74%,0 100%,34% 100%)}
+.s6{clip-path:polygon(100% 82%,100% 100%,72% 100%)}
+.hero-inner{position:relative;text-align:center;padding:40px 16px 34px}
+.logo{margin:0;font-weight:900;line-height:.95;letter-spacing:-.02em;display:inline-block;transform:rotate(-4deg)}
+.logo span{display:block;-webkit-text-stroke:.13em var(--teal);paint-order:stroke fill;text-shadow:.07em .07em 0 var(--teal)}
+.logo .l1{color:var(--yellow);font-size:clamp(60px,14vw,138px)}
+.logo .l2{color:#fff;font-size:clamp(44px,10vw,98px);text-align:right;margin-top:-.08em}
+.tag{display:inline-block;margin:22px 0 0;background:var(--teal);color:#fff;font-weight:700;padding:4px 16px;border-radius:999px;transform:rotate(-2deg)}
+.cursor{position:absolute;right:9%;bottom:16%;width:46px;transform:rotate(-12deg)}
+.mode{position:absolute;top:12px;right:12px;background:var(--yellow);border:2px solid var(--teal);font-size:13px;font-weight:700;padding:2px 10px;border-radius:999px}
+
+/* ---------- Layout ---------- */
+main{max-width:1080px;margin:0 auto;padding:28px 16px 80px}
+h2{font-size:24px;font-weight:900;color:var(--teal);margin:34px 0 14px;display:flex;align-items:center;gap:10px}
+h2::before{content:"";width:16px;height:22px;background:var(--cyan);border:3px solid var(--teal);transform:skewX(-18deg)}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.spread{justify-content:space-between}
+.muted{color:var(--muted);font-size:14px}
+.card{background:#fff;border:3px solid var(--teal);border-radius:var(--r);box-shadow:var(--sh)}
+
+.btn{cursor:pointer;font-weight:900;border:3px solid var(--teal);border-radius:999px;background:var(--yellow);color:var(--teal);
+  padding:8px 18px;box-shadow:3px 3px 0 var(--teal);transition:transform .08s,box-shadow .08s;white-space:nowrap}
+.btn:active{transform:translate(3px,3px);box-shadow:0 0 0 var(--teal)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn.white{background:#fff}.btn.cyan{background:var(--cyan)}.btn.red{background:var(--red);color:#fff}
+.btn.sm{padding:4px 12px;font-size:14px;border-width:2px;box-shadow:2px 2px 0 var(--teal)}
+.x{cursor:pointer;border:0;background:none;color:var(--red);font-weight:900;font-size:18px;padding:0 6px}
+
+/* ---------- Home ---------- */
+.open-list{display:grid;gap:14px}
+.og{padding:14px 18px;display:flex;gap:14px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.og b{font-size:20px;font-weight:900}
+.empty{padding:22px;text-align:center;border:3px dashed var(--teal);border-radius:var(--r);color:var(--muted)}
+.stores{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:16px}
+.store{cursor:pointer;text-align:left;padding:16px;border:3px solid var(--teal);border-radius:var(--r);box-shadow:var(--sh);transition:transform .12s}
+.store:hover{transform:rotate(-1.5deg) translateY(-2px)}
+.store.飲料{background:var(--cyan)}.store.餐點{background:var(--yellow)}
+.store .nm{display:block;font-size:22px;font-weight:900;color:var(--teal);line-height:1.25}
+.store .meta{font-size:13px;font-weight:700;color:var(--teal)}
+.closed-list{display:grid;gap:8px;margin-top:6px}
+.closed-list a{color:var(--teal);font-weight:700}
+
+/* ---------- Group ---------- */
+.back{color:var(--teal);font-weight:900;text-decoration:none}
+.g-head{padding:18px 20px;margin-top:12px}
+.g-head h1{margin:0;font-size:clamp(28px,6vw,40px);font-weight:900;color:var(--teal);line-height:1.15}
+.chip{display:inline-block;font-size:13px;font-weight:900;padding:2px 10px;border-radius:999px;border:2px solid var(--teal)}
+.chip.on{background:var(--cyan)}.chip.off{background:var(--red);color:#fff;border-color:var(--red)}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:18px 0}
+.stat{padding:12px 14px}
+.stat .v{display:block;font-size:26px;font-weight:900;color:var(--teal);line-height:1.2}
+.stat.total{background:var(--yellow)}
+.stat.unpaid .v{color:var(--red)}
+.g-body{display:grid;grid-template-columns:1fr 1.15fr;gap:20px;align-items:start}
+.menu{padding:8px 0}
+.cat{font-weight:900;color:#fff;background:var(--teal);padding:2px 16px;margin:10px 0 4px;font-size:14px}
+.item{width:100%;display:flex;justify-content:space-between;gap:10px;align-items:center;background:none;border:0;border-bottom:1px dashed #b9c6c7;padding:10px 16px;cursor:pointer;text-align:left}
+.item:hover{background:#fffbd0}
+.item .p{font-weight:700;color:var(--teal);white-space:nowrap}
+.item .plus{display:grid;place-items:center;width:28px;height:28px;border-radius:50%;background:var(--yellow);border:2px solid var(--teal);font-weight:900;color:var(--teal);flex:none}
+.menu.locked .item{cursor:not-allowed;opacity:.55}
+.tabs{display:flex;gap:8px;margin-bottom:12px}
+.tab{cursor:pointer;font-weight:900;border:3px solid var(--teal);background:#fff;border-radius:999px;padding:4px 16px;color:var(--teal)}
+.tab[aria-selected=true]{background:var(--teal);color:#fff}
+.person{padding:12px 16px;margin-bottom:14px}
+.person.paid{background:#E6FAFB}
+.person h3{margin:0;font-size:19px;font-weight:900}
+.person ul{list-style:none;margin:8px 0 10px;padding:0}
+.person li{display:flex;justify-content:space-between;gap:8px;padding:3px 0;border-bottom:1px dotted #cdd6d6}
+.person li small{color:var(--muted)}
+.pay{cursor:pointer;font-weight:900;border:3px solid var(--teal);border-radius:12px;padding:6px 14px;background:#fff;color:var(--teal)}
+.pay .box{display:inline-block;width:18px;height:18px;border:3px solid var(--teal);border-radius:4px;vertical-align:-3px;margin-right:6px;background:#fff}
+.pay[aria-pressed=true]{background:var(--cyan)}
+.pay[aria-pressed=true] .box{background:var(--teal)}
+.sum{padding:16px}
+.sum li{padding:4px 0;border-bottom:1px dotted #cdd6d6}
+.sum ul{margin:0 0 12px;padding-left:20px}
+
+/* ---------- Dialog ---------- */
+dialog{border:4px solid var(--teal);border-radius:18px;box-shadow:8px 8px 0 var(--teal);padding:0;width:min(520px,94vw);max-height:90vh}
+dialog::backdrop{background:#0e4a52aa}
+.dlg{padding:20px 22px}
+.dlg h3{margin:0 0 12px;font-size:22px;font-weight:900;color:var(--teal)}
+label.f{display:block;font-weight:700;margin:12px 0 4px}
+.inp{width:100%;border:3px solid var(--teal);border-radius:10px;padding:8px 12px;background:#fff}
+textarea.inp{min-height:130px;font-size:14px}
+.seg{display:flex;flex-wrap:wrap;gap:6px}
+.seg input{position:absolute;opacity:0;pointer-events:none}
+.seg label{cursor:pointer;border:2px solid var(--teal);border-radius:999px;padding:3px 12px;font-weight:700;font-size:14px;background:#fff}
+.seg input:checked+label{background:var(--yellow)}
+.seg input:focus-visible+label{outline:3px solid var(--cyan)}
+.stepper{display:inline-flex;align-items:center;border:3px solid var(--teal);border-radius:999px;overflow:hidden}
+.stepper button{border:0;background:var(--yellow);width:38px;height:36px;font-weight:900;font-size:20px;cursor:pointer;color:var(--teal)}
+.stepper span{min-width:44px;text-align:center;font-weight:900}
+.dlg-foot{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:18px;padding-top:14px;border-top:3px dashed var(--teal)}
+.big{font-size:24px;font-weight:900;color:var(--teal)}
+.warn{background:#FFF4C2;border:2px solid var(--mustard);border-radius:10px;padding:6px 10px;font-size:14px;margin-top:8px}
+.preview{max-height:180px;overflow:auto;border:2px solid #b9c6c7;border-radius:10px;margin-top:8px}
+.preview table{border-collapse:collapse;width:100%;font-size:13px}
+.preview td,.preview th{padding:4px 8px;border-bottom:1px solid #e1e6e6;text-align:left}
+.store-admin li{display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px dotted #cdd6d6}
+.store-admin ul{list-style:none;padding:0;margin:6px 0 0}
+
+#toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(120px);background:var(--teal);color:#fff;font-weight:700;padding:10px 20px;border-radius:999px;transition:transform .25s;z-index:9}
+#toast.show{transform:translateX(-50%) translateY(0)}
+
+body.in-group .hero{min-height:0}
+body.in-group .hero-inner{padding:18px 16px 16px}
+body.in-group .logo .l1{font-size:clamp(38px,7vw,64px)}
+body.in-group .logo .l2{font-size:clamp(28px,5vw,46px)}
+body.in-group .tag,body.in-group .cursor{display:none}
+@media (max-width:760px){
+  .g-body{grid-template-columns:1fr}
+  .stats{grid-template-columns:repeat(2,1fr)}
+  .cursor{display:none}
+  .hero{min-height:240px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="s s1"></div><div class="s s2"></div><div class="s s3"></div>
+  <div class="s s4"></div><div class="s s5"></div><div class="s s6"></div>
+  <span class="mode hidden" id="modeTag">示範模式（資料不會儲存）</span>
+  <div class="hero-inner">
+    <h1 class="logo" aria-label="吃飽沒上線"><span class="l1">吃飽沒</span><span class="l2">上線</span></h1><br>
+    <p class="tag">教學部團購小幫手，午餐飲料一起揪</p>
+  </div>
+  <svg class="cursor" viewBox="0 0 40 52" aria-hidden="true"><path d="M3 3 L3 42 L13 33 L20 49 L27 46 L20 30 L34 30 Z" fill="#fff" stroke="#24292B" stroke-width="3" stroke-linejoin="round"/></svg>
+</header>
+
+<main>
+  <!-- 首頁 -->
+  <section id="home">
+    <h2>今天開團中</h2>
+    <div id="openList" class="open-list"></div>
+    <details id="closedWrap" class="hidden" style="margin-top:14px">
+      <summary class="muted" style="cursor:pointer;font-weight:700">最近已截止的團</summary>
+      <div id="closedList" class="closed-list"></div>
+    </details>
+
+    <div class="row spread" style="margin-top:34px">
+      <h2 style="margin:0">要揪哪一家？</h2>
+      <button class="btn white sm" id="btnImport">匯入／管理菜單</button>
+    </div>
+    <p class="muted" style="margin:6px 0 14px">按店家就開一個新團，再把連結丟到群組讓大家點。</p>
+    <div id="storeGrid" class="stores"></div>
+  </section>
+
+  <!-- 團頁 -->
+  <section id="group" class="hidden">
+    <a href="#" class="back">← 回首頁</a>
+    <div class="card g-head">
+      <div class="row spread">
+        <div>
+          <h1 id="gStore"></h1>
+          <div class="row" style="gap:8px;margin-top:4px">
+            <span class="chip" id="gStatus"></span>
+            <span class="muted" id="gMeta"></span>
+          </div>
+          <div class="muted" id="gNote"></div>
+        </div>
+        <div class="row">
+          <button class="btn cyan" id="btnShare">複製揪團連結</button>
+          <button class="btn white" id="btnClose"></button>
+        </div>
+      </div>
+    </div>
+
+    <div class="stats">
+      <div class="card stat total"><span class="muted">整團總金額</span><span class="v" id="stTotal"></span></div>
+      <div class="card stat"><span class="muted">已收</span><span class="v" id="stPaid"></span></div>
+      <div class="card stat unpaid"><span class="muted">還沒收</span><span class="v" id="stUnpaid"></span></div>
+      <div class="card stat"><span class="muted">人數／份數</span><span class="v" id="stCount"></span></div>
+    </div>
+
+    <div class="g-body">
+      <div>
+        <h2 style="margin-top:0">菜單</h2>
+        <div class="card menu" id="gMenu"></div>
+      </div>
+      <div>
+        <div class="tabs" role="tablist">
+          <button class="tab" role="tab" aria-selected="true" data-tab="people">每個人</button>
+          <button class="tab" role="tab" aria-selected="false" data-tab="shop">給店家的彙總</button>
+        </div>
+        <div id="tabPeople"></div>
+        <div id="tabShop" class="hidden"></div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- 開團 -->
+<dialog id="dlgOpen"><form method="dialog" class="dlg" id="formOpen">
+  <h3>開一團 <span id="openStoreName"></span></h3>
+  <label class="f" for="oHost">團主（誰負責收錢）</label>
+  <input class="inp" id="oHost" list="nameList" maxlength="20" required>
+  <label class="f" for="oDeadline">幾點收單</label>
+  <input class="inp" id="oDeadline" type="datetime-local" required>
+  <label class="f" for="oNote">備註（選填）</label>
+  <input class="inp" id="oNote" maxlength="80" placeholder="例：外送費均分、11:50 前要點好">
+  <div class="dlg-foot">
+    <button class="btn white" value="cancel" formnovalidate>取消</button>
+    <button class="btn" id="btnOpenGo" value="ok">開團</button>
+  </div>
+</form></dialog>
+
+<!-- 點餐 -->
+<dialog id="dlgOrder"><form method="dialog" class="dlg" id="formOrder">
+  <h3 id="odItem"></h3>
+  <label class="f" for="odName">你的名字</label>
+  <input class="inp" id="odName" list="nameList" maxlength="20" required>
+  <div id="odSizeWrap"><label class="f">尺寸</label><div class="seg" id="odSize"></div></div>
+  <div id="odDrinkWrap">
+    <label class="f">甜度</label><div class="seg" id="odSugar"></div>
+    <label class="f">冰塊</label><div class="seg" id="odIce"></div>
+  </div>
+  <label class="f">數量</label>
+  <div class="stepper"><button type="button" id="qMinus" aria-label="減少">−</button><span id="qVal">1</span><button type="button" id="qPlus" aria-label="增加">+</button></div>
+  <label class="f" for="odNote">備註（選填）</label>
+  <input class="inp" id="odNote" maxlength="60" placeholder="例：加珍珠、飯少一點">
+  <div class="dlg-foot">
+    <span class="big" id="odTotal"></span>
+    <div class="row">
+      <button class="btn white" value="cancel" formnovalidate>取消</button>
+      <button class="btn" value="ok">加入訂單</button>
+    </div>
+  </div>
+</form></dialog>
+
+<!-- 匯入菜單 -->
+<dialog id="dlgImport"><form method="dialog" class="dlg" id="formImport">
+  <h3>匯入菜單</h3>
+  <label class="f" for="imStore">店家名稱</label>
+  <input class="inp" id="imStore" list="storeList" maxlength="30" placeholder="例：50嵐 永康店" required>
+  <div id="imReplace" class="warn hidden"></div>
+  <label class="f">類型</label>
+  <div class="seg">
+    <input type="radio" name="imType" id="imT1" value="飲料" checked><label for="imT1">飲料（可選甜度冰塊）</label>
+    <input type="radio" name="imType" id="imT2" value="餐點"><label for="imT2">餐點</label>
+  </div>
+  <label class="f" for="imPaste">從 Excel 複製貼上，或上傳檔案</label>
+  <textarea class="inp" id="imPaste" placeholder="欄位順序：分類　品項　價格　大杯價（大杯價可空白）&#10;找好茶	紅茶	25	30&#10;找奶茶	珍珠奶茶	50	60&#10;&#10;只有品項和價格也可以：&#10;排骨飯	100"></textarea>
+  <div class="row" style="margin-top:8px">
+    <input type="file" id="imFile" accept=".csv,.xlsx,.xls" class="hidden">
+    <button type="button" class="btn white sm" id="btnPick">上傳 Excel／CSV</button>
+    <button type="button" class="btn white sm" id="btnTpl">下載範本</button>
+  </div>
+  <div id="imPreview"></div>
+  <div class="dlg-foot">
+    <button class="btn white" value="cancel" formnovalidate>關閉</button>
+    <button class="btn" id="btnImportGo" value="ok" disabled>匯入</button>
+  </div>
+  <div class="store-admin" id="storeAdmin"></div>
+</form></dialog>
+
+<datalist id="nameList"></datalist>
+<datalist id="storeList"></datalist>
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script>
+/* ===== 設定：部署 Apps Script 後，把網頁應用程式網址貼在這裡 ===== */
+const API_URL = 'https://script.google.com/macros/s/AKfycbzbw2GxCYuC3LzbghjP5IXCXualqmOfs9cvhTwfSZjDD-32wBgk3k1PvWEHLEaH9Smg0w/exec';
+/* ============================================================== */
+
+const DEMO = !API_URL;
+const SUGAR = ['正常糖','少糖','半糖','微糖','無糖'];
+const ICE = ['正常冰','少冰','微冰','去冰','溫','熱'];
+let S = { menu: [], groups: [], orders: [] };
+let curGroup = null, curItem = null, qty = 1, parsed = [], tab = 'people', busy = false;
+
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const money = n => '$' + Number(n || 0).toLocaleString();
+const clean = v => String(v ?? '').replace(/[$,元\s]/g, '');
+const isNum = v => clean(v) !== '' && !isNaN(Number(clean(v)));
+const pad = n => String(n).padStart(2, '0');
+const localStr = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+const hm = s => { const d = new Date(s); return isNaN(d) ? '' : `${d.getMonth()+1}/${d.getDate()} ${pad(d.getHours())}:${pad(d.getMinutes())}`; };
+const uid = () => Math.random().toString(36).slice(2, 10);
+
+function toast(msg) { const t = $('#toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('show'), 2200); }
+
+/* ---------- 資料存取 ---------- */
+function normalize(d) {
+  return {
+    menu: (d.menu || []).map(m => ({ ...m, price: Number(clean(m.price)) || 0, priceL: isNum(m.priceL) ? Number(clean(m.priceL)) : '' })),
+    groups: d.groups || [],
+    orders: (d.orders || []).map(o => ({ ...o, qty: Number(o.qty) || 1, price: Number(o.price) || 0, subtotal: Number(o.subtotal) || 0,
+      paid: o.paid === true || String(o.paid).toUpperCase() === 'TRUE' }))
+  };
+}
+async function load() {
+  if (DEMO) return;
+  const r = await fetch(API_URL + '?action=getAll');
+  const j = await r.json();
+  if (!j.success) throw new Error(j.error);
+  S = normalize(j.data);
+}
+async function call(action, payload) {
+  if (busy) return;
+  busy = true;
+  try {
+    if (DEMO) demo(action, payload);
+    else {
+      const r = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action, ...payload }) });
+      const j = await r.json();
+      if (!j.success) throw new Error(j.error);
+      await load();
+    }
+    render();
+    return true;
+  } catch (e) { toast('沒成功：' + e.message); return false; }
+  finally { busy = false; }
+}
+
+/* 示範模式：在記憶體裡跑一樣的邏輯 */
+function demo(a, p) {
+  if (a === 'openGroup') S.groups.push({ id: p.id, store: p.store, host: p.host, deadline: p.deadline, note: p.note, status: '開團中', createdAt: localStr(new Date()) });
+  if (a === 'updateGroup') Object.assign(S.groups.find(g => g.id === p.id), { status: p.status, deadline: p.deadline || S.groups.find(g => g.id === p.id).deadline });
+  if (a === 'addOrder') S.orders.push({ ...p, id: uid(), subtotal: p.price * p.qty, paid: false, createdAt: localStr(new Date()) });
+  if (a === 'deleteOrder') S.orders = S.orders.filter(o => o.id !== p.id);
+  if (a === 'setPaid') S.orders.forEach(o => { if (o.groupId === p.groupId && o.name === p.name) o.paid = p.paid; });
+  if (a === 'importMenu') { S.menu = S.menu.filter(m => m.store !== p.store).concat(p.items.map(i => ({ ...i, store: p.store, type: p.type }))); }
+  if (a === 'deleteStore') S.menu = S.menu.filter(m => m.store !== p.store);
+}
+function seedDemo() {
+  const drink = [['找好茶','紅茶',25,30],['找好茶','綠茶',25,30],['找好茶','四季春',30,35],['找奶茶','珍珠奶茶',50,60],['找奶茶','鮮奶紅茶',55,65],['找果汁','冬瓜檸檬',45,55]];
+  const meal = [['便當','排骨飯',100,''],['便當','雞腿飯',110,''],['便當','魚排飯',105,''],['便當','素食便當',90,''],['加點','滷蛋',15,'']];
+  S.menu = drink.map(([category,item,price,priceL]) => ({ store:'珍好喝茶飲', type:'飲料', category, item, price, priceL }))
+    .concat(meal.map(([category,item,price,priceL]) => ({ store:'好呷便當', type:'餐點', category, item, price, priceL })));
+  const dl = new Date(Date.now() + 45 * 60000);
+  S.groups = [{ id:'demo1', store:'珍好喝茶飲', host:'Lulu', deadline: localStr(dl), note:'下午茶時間！', status:'開團中', createdAt: localStr(new Date()) }];
+  S.orders = [
+    { id:'o1', groupId:'demo1', name:'Lulu', item:'珍珠奶茶', size:'大杯', sugar:'半糖', ice:'少冰', qty:1, price:60, subtotal:60, note:'', paid:true },
+    { id:'o2', groupId:'demo1', name:'英云', item:'四季春', size:'中杯', sugar:'無糖', ice:'去冰', qty:2, price:30, subtotal:60, note:'', paid:false },
+    { id:'o3', groupId:'demo1', name:'貞琳', item:'珍珠奶茶', size:'大杯', sugar:'半糖', ice:'少冰', qty:1, price:60, subtotal:60, note:'', paid:false }
+  ];
+}
+
+/* ---------- 計算 ---------- */
+const isClosed = g => g.status === '已截止' || (g.deadline && new Date(g.deadline) < new Date());
+const ordersOf = id => S.orders.filter(o => o.groupId === id);
+const optLabel = o => [o.size, o.sugar, o.ice].filter(Boolean).join(' ');
+function stores() {
+  const m = new Map();
+  S.menu.forEach(i => { if (!m.has(i.store)) m.set(i.store, { name: i.store, type: i.type, count: 0 }); m.get(i.store).count++; });
+  return [...m.values()];
+}
+function people(id) {
+  const m = new Map();
+  ordersOf(id).forEach(o => { if (!m.has(o.name)) m.set(o.name, []); m.get(o.name).push(o); });
+  return [...m.entries()].map(([name, list]) => ({ name, list, total: list.reduce((s, o) => s + o.subtotal, 0), paid: list.every(o => o.paid) }));
+}
+function timeLeft(g) {
+  if (g.status === '已截止') return '已收單';
+  const min = Math.round((new Date(g.deadline) - new Date()) / 60000);
+  if (min < 0) return '時間到了，已截止';
+  if (min < 60) return `還剩 ${min} 分鐘`;
+  return `${hm(g.deadline)} 收單`;
+}
+
+/* ---------- 畫面 ---------- */
+function render() {
+  const names = [...new Set(S.orders.map(o => o.name).concat(S.groups.map(g => g.host)))].filter(Boolean);
+  $('#nameList').innerHTML = names.map(n => `<option value="${esc(n)}">`).join('');
+  $('#storeList').innerHTML = stores().map(s => `<option value="${esc(s.name)}">`).join('');
+  route();
+}
+function route() {
+  const m = location.hash.match(/^#\/g\/(.+)$/);
+  const g = m && S.groups.find(x => x.id === decodeURIComponent(m[1]));
+  $('#home').classList.toggle('hidden', !!g);
+  $('#group').classList.toggle('hidden', !g);
+  document.body.classList.toggle('in-group', !!g);
+  if (g) { curGroup = g; renderGroup(g); } else { curGroup = null; renderHome(); }
+}
+function renderHome() {
+  const sorted = [...S.groups].sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)));
+  const open = sorted.filter(g => !isClosed(g));
+  const recent = sorted.filter(g => isClosed(g)).slice(0, 10);
+  $('#openList').innerHTML = open.length ? open.map(g => {
+    const os = ordersOf(g.id), total = os.reduce((s, o) => s + o.subtotal, 0);
+    return `<div class="card og"><div><b>${esc(g.store)}</b><div class="muted">團主 ${esc(g.host)}，${timeLeft(g)}，已有 ${new Set(os.map(o => o.name)).size} 人點，${money(total)}</div></div>
+      <a class="btn" href="#/g/${encodeURIComponent(g.id)}">去點餐</a></div>`;
+  }).join('') : `<div class="empty">現在沒有人開團，肚子餓的話就從下面挑一家開吧！</div>`;
+  $('#closedWrap').classList.toggle('hidden', !recent.length);
+  $('#closedList').innerHTML = recent.map(g => `<a href="#/g/${encodeURIComponent(g.id)}">${hm(g.createdAt)}　${esc(g.store)}（團主 ${esc(g.host)}）</a>`).join('');
+  const st = stores();
+  $('#storeGrid').innerHTML = st.length ? st.map(s => `<button class="store ${esc(s.type)}" data-store="${esc(s.name)}">
+      <span class="meta">${esc(s.type)}</span><span class="nm">${esc(s.name)}</span><span class="meta">${s.count} 項</span></button>`).join('')
+    : `<div class="empty" style="grid-column:1/-1">還沒有任何菜單，按右上角「匯入／管理菜單」新增第一家店。</div>`;
+}
+function renderGroup(g) {
+  const closed = isClosed(g), os = ordersOf(g.id), ps = people(g.id);
+  const total = os.reduce((s, o) => s + o.subtotal, 0), paid = os.filter(o => o.paid).reduce((s, o) => s + o.subtotal, 0);
+  $('#gStore').textContent = g.store;
+  const chip = $('#gStatus'); chip.textContent = closed ? '已截止' : '開團中'; chip.className = 'chip ' + (closed ? 'off' : 'on');
+  $('#gMeta').textContent = `團主 ${g.host}，${timeLeft(g)}`;
+  $('#gNote').textContent = g.note || '';
+  $('#btnClose').textContent = closed ? '再開 15 分鐘' : '收單';
+  $('#stTotal').textContent = money(total);
+  $('#stPaid').textContent = money(paid);
+  $('#stUnpaid').textContent = money(total - paid);
+  $('#stCount').textContent = `${ps.length} 人／${os.reduce((s, o) => s + o.qty, 0)}`;
+
+  const items = S.menu.filter(m => m.store === g.store);
+  let lastCat = null;
+  const menuEl = $('#gMenu'); menuEl.classList.toggle('locked', closed);
+  menuEl.innerHTML = items.length ? items.map((m, i) => {
+    const cat = m.category && m.category !== lastCat ? `<div class="cat">${esc(m.category)}</div>` : '';
+    lastCat = m.category;
+    const price = m.priceL !== '' ? `中 ${money(m.price)}／大 ${money(m.priceL)}` : money(m.price);
+    return `${cat}<button class="item" data-i="${i}" ${closed ? 'disabled' : ''}><span>${esc(m.item)}</span><span class="row" style="gap:8px;flex-wrap:nowrap"><span class="p">${price}</span><span class="plus">+</span></span></button>`;
+  }).join('') : `<p class="muted" style="padding:0 16px">這家店的菜單被刪掉了，請重新匯入。</p>`;
+  menuEl._items = items;
+
+  $('#tabPeople').innerHTML = ps.length ? ps.map(p => `<div class="card person ${p.paid ? 'paid' : ''}">
+      <div class="row spread"><h3>${esc(p.name)}</h3><span class="big" style="font-size:20px">${money(p.total)}</span></div>
+      <ul>${p.list.map(o => `<li><span>${esc(o.item)} <small>${esc(optLabel(o))}${o.note ? '，' + esc(o.note) : ''}</small> ×${o.qty}</span>
+        <span>${money(o.subtotal)}${closed ? '' : ` <button class="x" data-del="${esc(o.id)}" aria-label="刪除 ${esc(o.item)}">✕</button>`}</span></li>`).join('')}</ul>
+      <button class="pay" data-pay="${esc(p.name)}" aria-pressed="${p.paid}"><span class="box"></span>${p.paid ? '已付款' : '我付了，打勾'}</button>
+    </div>`).join('') : `<div class="empty">還沒有人點，從左邊菜單按「+」當第一個！</div>`;
+
+  const agg = new Map();
+  os.forEach(o => { const k = [o.item, optLabel(o), o.note].join('|'); agg.set(k, (agg.get(k) || 0) + o.qty); });
+  const lines = [...agg.entries()].map(([k, q]) => { const [it, op, nt] = k.split('|'); return `${it}${op ? ' ' + op : ''}${nt ? '（' + nt + '）' : ''} ×${q}`; });
+  $('#tabShop').innerHTML = lines.length ? `<div class="card sum"><ul>${lines.map(l => `<li>${esc(l)}</li>`).join('')}</ul>
+      <div class="row spread"><b>共 ${os.reduce((s, o) => s + o.qty, 0)} 份，${money(total)}</b><button class="btn sm" id="btnCopySum">複製給店家</button></div></div>`
+    : `<div class="empty">有人點了之後，這裡會整理成可以直接念給店家的清單。</div>`;
+  $('#tabShop')._text = `【${g.store}】${hm(g.createdAt)} 團\n${lines.join('\n')}\n共 ${os.reduce((s, o) => s + o.qty, 0)} 份，${money(total)}`;
+  showTab(tab);
+}
+function showTab(t) {
+  tab = t;
+  document.querySelectorAll('.tab').forEach(b => b.setAttribute('aria-selected', b.dataset.tab === t));
+  $('#tabPeople').classList.toggle('hidden', t !== 'people');
+  $('#tabShop').classList.toggle('hidden', t !== 'shop');
+}
+async function copy(text) {
+  try { await navigator.clipboard.writeText(text); }
+  catch { const ta = document.createElement('textarea'); ta.value = text; document.body.append(ta); ta.select(); document.execCommand('copy'); ta.remove(); }
+  toast('複製好了');
+}
+
+/* ---------- 開團 ---------- */
+let openStore = null;
+$('#storeGrid').addEventListener('click', e => {
+  const b = e.target.closest('[data-store]'); if (!b) return;
+  openStore = b.dataset.store;
+  $('#openStoreName').textContent = openStore;
+  const d = new Date(Date.now() + 60 * 60000); d.setMinutes(Math.ceil(d.getMinutes() / 5) * 5, 0, 0);
+  $('#oDeadline').value = localStr(d);
+  $('#oNote').value = '';
+  $('#dlgOpen').showModal();
+});
+$('#formOpen').addEventListener('submit', async e => {
+  if (e.submitter?.value !== 'ok') return;
+  e.preventDefault();
+  const host = $('#oHost').value.trim(), deadline = $('#oDeadline').value;
+  if (!host || !deadline) return;
+  const id = 'G' + Date.now().toString(36) + uid().slice(0, 3);
+  if (await call('openGroup', { id, store: openStore, host, deadline, note: $('#oNote').value.trim() })) {
+    $('#dlgOpen').close();
+    location.hash = '#/g/' + id;
+    toast('開團成功！記得複製連結丟群組');
+  }
+});
+
+/* ---------- 點餐 ---------- */
+function segHTML(name, list, checked) {
+  return list.map((v, i) => `<input type="radio" name="${name}" id="${name}${i}" value="${esc(v)}" ${v === checked ? 'checked' : ''}><label for="${name}${i}">${esc(v)}</label>`).join('');
+}
+function updTotal() {
+  const big = document.querySelector('input[name=sz]:checked')?.value === '大杯';
+  const price = big ? curItem.priceL : curItem.price;
+  $('#qVal').textContent = qty;
+  $('#odTotal').textContent = money(price * qty);
+}
+$('#gMenu').addEventListener('click', e => {
+  const b = e.target.closest('[data-i]'); if (!b || isClosed(curGroup)) return;
+  curItem = $('#gMenu')._items[b.dataset.i]; qty = 1;
+  $('#odItem').textContent = curItem.item;
+  const hasL = curItem.priceL !== '';
+  $('#odSizeWrap').classList.toggle('hidden', !hasL);
+  $('#odSize').innerHTML = hasL ? segHTML('sz', ['中杯', '大杯'], '中杯') : '';
+  const drink = curItem.type === '飲料';
+  $('#odDrinkWrap').classList.toggle('hidden', !drink);
+  $('#odSugar').innerHTML = drink ? segHTML('sg', SUGAR, '正常糖') : '';
+  $('#odIce').innerHTML = drink ? segHTML('ic', ICE, '正常冰') : '';
+  $('#odNote').value = '';
+  updTotal();
+  $('#dlgOrder').showModal();
+  if (!$('#odName').value) $('#odName').focus();
+});
+$('#odSize').addEventListener('change', updTotal);
+$('#qMinus').onclick = () => { qty = Math.max(1, qty - 1); updTotal(); };
+$('#qPlus').onclick = () => { qty = Math.min(50, qty + 1); updTotal(); };
+$('#formOrder').addEventListener('submit', async e => {
+  if (e.submitter?.value !== 'ok') return;
+  e.preventDefault();
+  const name = $('#odName').value.trim(); if (!name) return;
+  const size = document.querySelector('input[name=sz]:checked')?.value || '';
+  const price = size === '大杯' ? curItem.priceL : curItem.price;
+  const ok = await call('addOrder', { groupId: curGroup.id, name, item: curItem.item, size,
+    sugar: document.querySelector('input[name=sg]:checked')?.value || '',
+    ice: document.querySelector('input[name=ic]:checked')?.value || '',
+    qty, price, note: $('#odNote').value.trim() });
+  if (ok) { $('#dlgOrder').close(); toast(`${name} 點了 ${curItem.item} ×${qty}`); }
+});
+
+/* ---------- 團頁操作 ---------- */
+$('#group').addEventListener('click', async e => {
+  const del = e.target.closest('[data-del]'), pay = e.target.closest('[data-pay]'), tb = e.target.closest('[data-tab]');
+  if (tb) showTab(tb.dataset.tab);
+  if (del) {
+    const o = S.orders.find(x => x.id === del.dataset.del);
+    if (o && confirm(`刪除 ${o.name} 的「${o.item}」？`)) { await call('deleteOrder', { id: o.id }); }
+  }
+  if (pay) {
+    const name = pay.dataset.pay, now = pay.getAttribute('aria-pressed') !== 'true';
+    if (await call('setPaid', { groupId: curGroup.id, name, paid: now })) toast(now ? `${name} 已付款，感謝！` : `${name} 改回未付款`);
+  }
+  if (e.target.id === 'btnCopySum') copy($('#tabShop')._text);
+});
+$('#btnShare').onclick = () => copy(`${curGroup.store} 開團囉！${timeLeft(curGroup)}\n${location.href.split('#')[0]}#/g/${encodeURIComponent(curGroup.id)}`);
+$('#btnClose').onclick = async () => {
+  const g = curGroup;
+  if (!isClosed(g)) { if (confirm('收單後大家就不能再點了，確定收單？')) await call('updateGroup', { id: g.id, status: '已截止' }); }
+  else {
+    const base = Math.max(Date.now(), new Date(g.deadline).getTime() || 0);
+    await call('updateGroup', { id: g.id, status: '開團中', deadline: localStr(new Date(base + 15 * 60000)) });
+  }
+};
+
+/* ---------- 匯入菜單 ---------- */
+function parseRows(rows) {
+  const out = [];
+  rows.forEach(r => {
+    const c = r.map(x => String(x ?? '').trim());
+    while (c.length && c[c.length - 1] === '') c.pop();
+    if (c.length >= 3 && isNum(c[2]) && !isNum(c[1])) out.push({ category: c[0], item: c[1], price: Number(clean(c[2])), priceL: isNum(c[3]) ? Number(clean(c[3])) : '' });
+    else if (c.length >= 2 && isNum(c[1]) && c[0]) out.push({ category: '', item: c[0], price: Number(clean(c[1])), priceL: isNum(c[2]) ? Number(clean(c[2])) : '' });
+  });
+  return out;
+}
+function showPreview() {
+  const box = $('#imPreview');
+  $('#btnImportGo').disabled = !parsed.length;
+  if (!parsed.length) { box.innerHTML = $('#imPaste').value.trim() ? '<div class="warn">讀不到品項，請確認有「品項」和「價格」兩欄。</div>' : ''; return; }
+  box.innerHTML = `<p class="muted" style="margin:10px 0 0">讀到 ${parsed.length} 項，確認沒問題就按匯入。</p>
+    <div class="preview"><table><tr><th>分類</th><th>品項</th><th>價格</th><th>大杯</th></tr>
+    ${parsed.map(p => `<tr><td>${esc(p.category)}</td><td>${esc(p.item)}</td><td>${p.price}</td><td>${p.priceL}</td></tr>`).join('')}</table></div>`;
+}
+function checkReplace() {
+  const n = S.menu.filter(m => m.store === $('#imStore').value.trim()).length;
+  const w = $('#imReplace'); w.classList.toggle('hidden', !n);
+  w.textContent = `這家店已經有 ${n} 項菜單，匯入會整份換成新的。`;
+}
+function renderStoreAdmin() {
+  const st = stores();
+  $('#storeAdmin').innerHTML = st.length ? `<label class="f" style="margin-top:18px">已建立的店家</label><ul>${st.map(s =>
+    `<li><span>${esc(s.name)} <small class="muted">${esc(s.type)}，${s.count} 項</small></span><button type="button" class="x" data-rm="${esc(s.name)}" aria-label="刪除 ${esc(s.name)}">✕</button></li>`).join('')}</ul>` : '';
+}
+$('#btnImport').onclick = () => {
+  $('#formImport').reset(); parsed = []; showPreview(); checkReplace(); renderStoreAdmin();
+  $('#dlgImport').showModal();
+};
+$('#imStore').addEventListener('input', () => {
+  checkReplace();
+  const ex = S.menu.find(m => m.store === $('#imStore').value.trim());
+  if (ex) document.querySelector(`input[name=imType][value="${ex.type}"]`).checked = true;
+});
+$('#imPaste').addEventListener('input', () => { parsed = parseRows($('#imPaste').value.split(/\r?\n/).map(l => l.split(l.includes('\t') ? '\t' : ','))); showPreview(); });
+$('#btnPick').onclick = () => $('#imFile').click();
+$('#imFile').addEventListener('change', async e => {
+  const f = e.target.files[0]; if (!f) return;
+  try {
+    let rows;
+    if (/\.csv$/i.test(f.name)) rows = (await f.text()).replace(/^\uFEFF/, '').split(/\r?\n/).map(l => l.split(',').map(x => x.replace(/^"|"$/g, '')));
+    else {
+      if (!window.XLSX) throw new Error('Excel 讀取元件沒載入，請改用 CSV 或直接貼上');
+      const wb = XLSX.read(await f.arrayBuffer());
+      rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1, defval: '' });
+    }
+    parsed = parseRows(rows);
+    if (!$('#imStore').value.trim()) { $('#imStore').value = f.name.replace(/\.(csv|xlsx|xls)$/i, ''); checkReplace(); }
+    showPreview();
+  } catch (err) { toast(err.message); }
+  e.target.value = '';
+});
+$('#btnTpl').onclick = () => {
+  const csv = '\uFEFF分類,品項,價格,大杯價\n找好茶,紅茶,25,30\n找奶茶,珍珠奶茶,50,60\n便當,排骨飯,100,\n';
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' })); a.download = '菜單範本.csv'; a.click();
+};
+$('#storeAdmin').addEventListener('click', async e => {
+  const b = e.target.closest('[data-rm]'); if (!b) return;
+  if (confirm(`刪除「${b.dataset.rm}」的整份菜單？（過去的訂單紀錄會保留）`)) { await call('deleteStore', { store: b.dataset.rm }); renderStoreAdmin(); checkReplace(); }
+});
+$('#formImport').addEventListener('submit', async e => {
+  if (e.submitter?.value !== 'ok') return;
+  e.preventDefault();
+  const store = $('#imStore').value.trim(); if (!store || !parsed.length) return;
+  const type = document.querySelector('input[name=imType]:checked').value;
+  if (await call('importMenu', { store, type, items: parsed })) { $('#dlgImport').close(); toast(`${store} 匯入 ${parsed.length} 項`); }
+});
+
+/* ---------- 啟動 ---------- */
+window.addEventListener('hashchange', () => { tab = 'people'; route(); window.scrollTo(0, 0); });
+(async () => {
+  $('#modeTag').classList.toggle('hidden', !DEMO);
+  if (DEMO) seedDemo();
+  else { try { await load(); } catch (e) { toast('連不到資料表：' + e.message); } }
+  render();
+  setInterval(async () => {
+    if (document.hidden || busy || document.querySelector('dialog[open]')) return;
+    try { await load(); render(); } catch {}
+  }, 20000);
+})();
+</script>
+</body>
+</html>
