@@ -129,6 +129,11 @@ textarea.inp{min-height:130px;font-size:14px}
 .preview{max-height:180px;overflow:auto;border:2px solid #b9c6c7;border-radius:10px;margin-top:8px}
 .preview table{border-collapse:collapse;width:100%;font-size:13px}
 .preview td,.preview th{padding:4px 8px;border-bottom:1px solid #e1e6e6;text-align:left}
+#imgStatus{display:flex;gap:10px;align-items:center;margin-top:10px;padding:8px 10px;border:2px dashed var(--teal);border-radius:10px;font-size:14px;font-weight:700;color:var(--teal);background:#E6FAFB}
+#imgStatus.hidden{display:none}
+#imgStatus img{width:46px;height:46px;object-fit:cover;border-radius:6px;border:2px solid var(--teal);flex:none}
+#imgStatus .bar{height:6px;background:#cfe;border-radius:3px;overflow:hidden;margin-top:4px}
+#imgStatus .bar i{display:block;height:100%;background:var(--teal);width:0;transition:width .2s}
 .store-admin li{display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px dotted #cdd6d6}
 .store-admin ul{list-style:none;padding:0;margin:6px 0 0}
 
@@ -273,13 +278,17 @@ body.in-group .tag,body.in-group .cursor{display:none}
     <input type="radio" name="imType" id="imT1" value="飲料" checked><label for="imT1">飲料（可選甜度冰塊）</label>
     <input type="radio" name="imType" id="imT2" value="餐點"><label for="imT2">餐點</label>
   </div>
-  <label class="f" for="imPaste">從 Excel 複製貼上，或上傳檔案</label>
-  <textarea class="inp" id="imPaste" placeholder="欄位順序：分類　品項　價格　大杯價（大杯價可空白）&#10;找好茶	紅茶	25	30&#10;找奶茶	珍珠奶茶	50	60&#10;&#10;只有品項和價格也可以：&#10;排骨飯	100"></textarea>
-  <div class="row" style="margin-top:8px">
+  <label class="f">菜單內容</label>
+  <div class="row">
+    <input type="file" id="imImg" accept="image/*" multiple class="hidden">
+    <button type="button" class="btn cyan sm" id="btnImg">拍照／上傳菜單圖片</button>
     <input type="file" id="imFile" accept=".csv,.xlsx,.xls" class="hidden">
     <button type="button" class="btn white sm" id="btnPick">上傳 Excel／CSV</button>
     <button type="button" class="btn white sm" id="btnTpl">下載範本</button>
   </div>
+  <div id="imgStatus" class="hidden" role="status" aria-live="polite"></div>
+  <label class="f" for="imPaste">或直接貼上（辨識結果也會出現在這裡，可以修改）</label>
+  <textarea class="inp" id="imPaste" placeholder="欄位順序：分類　品項　價格　大杯價（大杯價可空白）&#10;找好茶	紅茶	25	30&#10;找奶茶	珍珠奶茶	50	60&#10;&#10;只有品項和價格也可以：&#10;排骨飯	100"></textarea>
   <div id="imPreview"></div>
   <div class="dlg-foot">
     <button class="btn white" value="cancel" formnovalidate>關閉</button>
@@ -597,7 +606,7 @@ function renderStoreAdmin() {
     `<li><span>${esc(s.name)} <small class="muted">${esc(s.type)}，${s.count} 項</small></span><button type="button" class="x" data-rm="${esc(s.name)}" aria-label="刪除 ${esc(s.name)}">✕</button></li>`).join('')}</ul>` : '';
 }
 $('#btnImport').onclick = () => {
-  $('#formImport').reset(); parsed = []; showPreview(); checkReplace(); renderStoreAdmin();
+  $('#formImport').reset(); $('#imgStatus').classList.add('hidden'); parsed = []; showPreview(); checkReplace(); renderStoreAdmin();
   $('#dlgImport').showModal();
 };
 $('#imStore').addEventListener('input', () => {
@@ -623,6 +632,95 @@ $('#imFile').addEventListener('change', async e => {
   } catch (err) { toast(err.message); }
   e.target.value = '';
 });
+/* ---------- 圖片辨識菜單 ---------- */
+// 先請 Apps Script 用 Gemini 讀圖（準），沒設定金鑰時改用瀏覽器內建文字辨識（免設定、較粗略）
+function shrink(file, max = 1600) {
+  return new Promise((ok, bad) => {
+    const img = new Image();
+    img.onload = () => {
+      const k = Math.min(1, max / Math.max(img.width, img.height));
+      const c = document.createElement('canvas');
+      c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+      URL.revokeObjectURL(img.src);
+      ok(c.toDataURL('image/jpeg', 0.85));
+    };
+    img.onerror = () => bad(new Error('這個檔案打不開，請換成 JPG 或 PNG'));
+    img.src = URL.createObjectURL(file);
+  });
+}
+function imgMsg(thumb, text, pct) {
+  const s = $('#imgStatus'); s.classList.remove('hidden');
+  s.innerHTML = `${thumb ? `<img src="${thumb}" alt="">` : ''}<div style="flex:1">${esc(text)}${pct == null ? '' : `<div class="bar"><i style="width:${pct}%"></i></div>`}</div>`;
+}
+function fillPaste(items) {
+  const lines = items.map(i => [i.category || '', i.item, i.price, i.priceL ?? ''].join('\t'));
+  const ta = $('#imPaste');
+  ta.value = (ta.value.trim() ? ta.value.trim() + '\n' : '') + lines.join('\n');
+  ta.dispatchEvent(new Event('input'));
+}
+async function readByAI(dataUrl) {
+  if (DEMO) throw Object.assign(new Error('示範模式'), { fallback: true });
+  const r = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'readMenuImage', image: dataUrl.split(',')[1], mime: 'image/jpeg' }) });
+  const j = await r.json();
+  if (!j.success) throw Object.assign(new Error(j.error), { fallback: j.error === 'NO_KEY' || /不認得的動作/.test(j.error) });
+  return j.data;
+}
+let tessLoading = null;
+function loadTess() {
+  if (window.Tesseract) return Promise.resolve();
+  return tessLoading ||= new Promise((ok, bad) => {
+    const s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
+    s.onload = ok; s.onerror = () => bad(new Error('文字辨識元件載入失敗，請檢查網路'));
+    document.head.append(s);
+  });
+}
+async function readByOCR(dataUrl, onPct) {
+  await loadTess();
+  const { data } = await Tesseract.recognize(dataUrl, 'chi_tra+eng', {
+    logger: m => m.status === 'recognizing text' && onPct(Math.round(m.progress * 100))
+  });
+  const items = [];
+  data.text.split('\n').forEach(line => {
+    const t = line.replace(/\s+/g, ' ').trim();
+    const nums = (t.match(/\d{2,4}/g) || []).map(Number).filter(n => n >= 10 && n <= 2000);
+    const name = t.replace(/[\d$元.,:：|\/\\\-~]+/g, ' ').replace(/\s+/g, ' ').trim();
+    if (nums.length && /[一-鿿A-Za-z]{2,}/.test(name)) items.push({ item: name, price: nums[0], priceL: nums[1] ?? '' });
+  });
+  return items;
+}
+$('#btnImg').onclick = () => $('#imImg').click();
+$('#imImg').addEventListener('change', async e => {
+  const files = [...e.target.files]; e.target.value = '';
+  if (!files.length) return;
+  $('#btnImg').disabled = true;
+  let total = 0, usedOCR = false;
+  try {
+    for (const [n, f] of files.entries()) {
+      const tag = files.length > 1 ? `第 ${n + 1}/${files.length} 張：` : '';
+      const url = await shrink(f);
+      let items;
+      try {
+        imgMsg(url, tag + 'AI 正在讀菜單，大約 10 秒…', null);
+        items = await readByAI(url);
+      } catch (err) {
+        if (!err.fallback) throw err;
+        usedOCR = true;
+        imgMsg(url, tag + '辨識文字中（第一次要下載辨識元件，會比較久）', 0);
+        items = await readByOCR(url, p => imgMsg(url, tag + '辨識文字中', p));
+      }
+      total += items.length;
+      fillPaste(items);
+    }
+    imgMsg(null, total
+      ? `讀到 ${total} 項，請對照圖片檢查下方的品項和價格，有錯直接改。${usedOCR ? '（目前用簡易辨識，分類和大杯價可能要自己補）' : ''}`
+      : '圖片裡讀不到品項和價格，換一張清楚、正面拍的照片試試。');
+  } catch (err) {
+    imgMsg(null, '辨識失敗：' + err.message);
+  } finally { $('#btnImg').disabled = false; }
+});
+
 $('#btnTpl').onclick = () => {
   const csv = '\uFEFF分類,品項,價格,大杯價\n找好茶,紅茶,25,30\n找奶茶,珍珠奶茶,50,60\n便當,排骨飯,100,\n';
   const a = document.createElement('a');
